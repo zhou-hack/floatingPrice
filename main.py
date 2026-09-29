@@ -17,6 +17,42 @@ import time
 from urllib.parse import urlparse
 
 import websocket
+
+
+_QT_DLL_HANDLES = []
+
+
+def _prepare_qt_dll_path():
+    """让 PyInstaller 程序在干净 Windows 环境中找到 Qt6Core 的依赖。"""
+    if sys.platform != "win32":
+        return
+
+    roots = []
+    if getattr(sys, "frozen", False):
+        bundle_root = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+        roots.append(os.path.join(bundle_root, "PyQt6", "Qt6", "bin"))
+    else:
+        roots.append(
+            os.path.join(
+                os.path.dirname(sys.executable),
+                "Lib",
+                "site-packages",
+                "PyQt6",
+                "Qt6",
+                "bin",
+            )
+        )
+
+    for root in roots:
+        if not os.path.isdir(root):
+            continue
+        if hasattr(os, "add_dll_directory"):
+            _QT_DLL_HANDLES.append(os.add_dll_directory(root))
+        os.environ["PATH"] = root + os.pathsep + os.environ.get("PATH", "")
+
+
+_prepare_qt_dll_path()
+
 from PyQt6.QtCore import Qt, QObject, pyqtSignal, QTimer, QSettings
 from PyQt6.QtGui import (
     QAction,

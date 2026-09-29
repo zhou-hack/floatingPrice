@@ -44,13 +44,21 @@ python main.py
 
 ## 打包 Windows 程序
 
-使用 PyInstaller 生成免解压目录版，避免单文件程序启动时创建临时目录失败：
+推荐使用 PyInstaller 生成解压目录版，并安装到 `%APPDATA%\FloatingTicker`。这个目录位于当前用户的 `AppData\Roaming`，不需要管理员权限，也不会依赖系统临时目录：
+
+```powershell
+pyinstaller --clean --noconfirm --onedir --windowed --name FloatingTicker --distpath "$env:APPDATA" --workpath ".\build-appdata" --add-data "assets;assets" --add-data "ico;ico" main.py
+```
+
+生成文件位于 `%APPDATA%\FloatingTicker\FloatingTicker.exe`，需要和同目录的 `_internal` 文件夹一起使用。
+
+如果只想输出到项目的 `dist` 目录：
 
 ```powershell
 pyinstaller --clean --noconfirm --onedir --windowed --name FloatingTicker --add-data "assets;assets" --add-data "ico;ico" main.py
 ```
 
-生成文件位于 `dist/FloatingTicker/FloatingTicker.exe`，需要和同目录的 `_internal` 文件夹一起分发。
+程序启动时会主动注册自己的 Qt DLL 目录，避免在没有 Python 环境的电脑上出现 `DLL load failed while importing QtCore`。
 
 ## 操作
 

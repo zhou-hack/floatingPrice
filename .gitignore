@@ -9,5 +9,7 @@ env/
 *.log
 preview-*.png
 build/
+build-appdata/
 dist/
 *.spec
+_MEI*/
