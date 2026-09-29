@@ -8,5 +8,6 @@ env/
 .vscode/
 *.log
 preview-*.png
-dist/
 build/
+dist/
+*.spec

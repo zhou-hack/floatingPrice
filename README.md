@@ -42,6 +42,16 @@ pip install -r requirements.txt
 python main.py
 ```
 
+## 打包 Windows 程序
+
+使用 PyInstaller 生成免解压目录版，避免单文件程序启动时创建临时目录失败：
+
+```powershell
+pyinstaller --clean --noconfirm --onedir --windowed --name FloatingTicker --add-data "assets;assets" --add-data "ico;ico" main.py
+```
+
+生成文件位于 `dist/FloatingTicker/FloatingTicker.exe`，需要和同目录的 `_internal` 文件夹一起分发。
+
 ## 操作
 
 - 左键拖动窗口
