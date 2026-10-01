@@ -53,7 +53,7 @@ def _prepare_qt_dll_path():
 
 _prepare_qt_dll_path()
 
-from PyQt6.QtCore import Qt, QObject, pyqtSignal, QTimer, QSettings
+from PyQt6.QtCore import Qt, QObject, pyqtSignal, QTimer, QSettings, QVariantAnimation
 from PyQt6.QtGui import (
     QAction,
     QActionGroup,
@@ -560,6 +560,7 @@ class TickerWindow(QWidget):
         # 用于主题切换后重应用动态颜色
         self._connected     = False
         self._price_flash    = None   # 'up' / 'down' / None
+        self._price_fade_from = None
         self._change_trend   = None   # 'up' / 'down' / None
 
         # ---- 状态 ----
@@ -591,6 +592,13 @@ class TickerWindow(QWidget):
         self._flash_timer.setSingleShot(True)
         self._flash_timer.setInterval(400)
         self._flash_timer.timeout.connect(self._clear_flash)
+
+        self._price_fade = QVariantAnimation(self)
+        self._price_fade.setDuration(300)
+        self._price_fade.setStartValue(0.0)
+        self._price_fade.setEndValue(1.0)
+        self._price_fade.valueChanged.connect(self._apply_price_fade)
+        self._price_fade.finished.connect(lambda: self._set_price_color(None))
 
         self._worker = None
         self._start_worker()
@@ -629,7 +637,10 @@ class TickerWindow(QWidget):
         # 2. 重新应用动态颜色
         self._set_status_color(self._connected)
         self._set_change_color(self._change_trend)
-        self._set_price_color(self._price_flash)
+        if self._price_fade.state() == QVariantAnimation.State.Running:
+            self._apply_price_fade(self._price_fade.currentValue())
+        else:
+            self._set_price_color(self._price_flash)
 
     # ---------------- UI ----------------
     def _build_ui(self):
@@ -855,12 +866,25 @@ class TickerWindow(QWidget):
 
     # ----------------- 动态颜色(per-widget setStyleSheet) -----------------
     def _set_price_color(self, color_key):
+        self._price_fade.stop()
         self._price_flash = color_key
         if color_key is None:
+            self._price_fade_from = None
             self.price_label.setStyleSheet("")
         else:
             color = self._current_theme_dict()[color_key]
             self.price_label.setStyleSheet("color: " + color + ";")
+
+    def _apply_price_fade(self, progress):
+        if self._price_fade_from is None:
+            return
+        start = self._price_fade_from
+        end = QColor(self._current_theme_dict()["text_primary"])
+        red = round(start.red() + (end.red() - start.red()) * progress)
+        green = round(start.green() + (end.green() - start.green()) * progress)
+        blue = round(start.blue() + (end.blue() - start.blue()) * progress)
+        color = QColor(red, green, blue)
+        self.price_label.setStyleSheet("color: " + color.name() + ";")
 
     def _set_change_color(self, trend):
         self._change_trend = trend
@@ -939,7 +963,10 @@ class TickerWindow(QWidget):
         self.low_val.setText(format(low, ",.2f"))
 
     def _clear_flash(self):
-        self._set_price_color(None)
+        if self._price_flash is None:
+            return
+        self._price_fade_from = QColor(self._current_theme_dict()[self._price_flash])
+        self._price_fade.start()
 
     # ---------------- drag ----------------
     def mousePressEvent(self, event):
